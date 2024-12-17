@@ -1,0 +1,124 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: always
+    command: >
+      sh -c "python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - 8000:8000
+    volumes: # allow us get updates from our project into our docker container in realtime
+      - ./meteringapi:/usr/src/app
+      - ./scripts/entrypoint.sh:/usr/src/app/entrypoint.sh
+      - ./scripts/run-local-workers.sh:/usr/src/app/run-local-workers.sh
+      - static_volume_metering:/usr/src/app/static/staticfiles
+      - media_volume_metering:/usr/src/app/static/mediafiles
+    depends_on:
+      - postgres
+    env_file:
+      - ./.env
+    environment:
+      LAUNCH_TYPE: webserver
+      
+
+  client:
+    build:
+      context: ./client
+      dockerfile: ./Dockerfile
+      args:
+        - NODE_ENV=development
+    ports:
+      - 3000:3000
+    volumes:
+      - ./client:/app
+      - ./client/node_modules:/app/node_modules
+    env_file:
+      - ./client/.env
+    depends_on:
+      - app
+      - postgres
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    # container_name: nginx
+    restart: unless-stopped
+    ports:
+      - 3030:3030
+    volumes:
+      - ./nginx/nginx-dev.conf:/etc/nginx/conf.d/nginx-dev.conf
+      - static_volume_metering:/usr/src/app/static/staticfiles
+      - media_volume_metering:/usr/src/app/static/mediafiles
+    depends_on:
+      - app
+      - client
+      - postgres
+
+  redis:
+    image: "redis:alpine"
+    # command: ["redis-server", "/etc/redis/redis.conf"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+      # - ./redis/redis.conf:/etc/redis/redis.conf
+
+  celery:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./meteringapi:/usr/src/app
+      - ./scripts/entrypoint.sh:/usr/src/app/entrypoint.sh
+      - ./scripts/run-local-workers.sh:/usr/src/app/run-local-workers.sh
+    env_file:
+      - ./.env
+    environment:
+      LAUNCH_TYPE: worker
+    depends_on:
+      - postgres
+      - redis
+      - app
+
+  beat:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    # command: celery -A apigateway beat -l INFO
+    # command: >
+    #   sh -c "celery -A apigateway beat -l INFO"
+    volumes:
+      - ./meteringapi:/usr/src/app
+      - ./scripts/entrypoint.sh:/usr/src/app/entrypoint.sh
+      - ./scripts/run-local-workers.sh:/usr/src/app/run-local-workers.sh
+    env_file:
+      - ./.env
+    environment:
+      LAUNCH_TYPE: beat
+    depends_on:
+      - postgres
+      - redis
+      - app
+      - celery
+
+  postgres:
+    image: postgres:12.0-alpine
+    ports:
+      - "5432"
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PG_HOST=${PG_HOST}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+volumes:
+  postgres_data:
+  redisdata:
+  static_volume_metering:
+  media_volume_metering:

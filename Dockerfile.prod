@@ -1,0 +1,106 @@
+# Use the official Python image.
+FROM python:3.11-slim as builder
+
+# Set the working directory in the container.
+WORKDIR /usr/src/app
+
+
+# set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# RUN pip install --upgrade pip
+
+RUN apt update \
+    && apt install -y tzdata libgdal-dev --no-install-recommends \
+    && apt install -y binutils libproj-dev gdal-bin git \
+    && apt install -y gcc g++ python3-dev musl-dev netcat-traditional\
+    && apt clean -y \
+    && pip install cython \
+    && pip install psycopg2-binary \
+    && pip install gdal==3.4.1
+
+# Update C env vars so compiler can find gdal
+ENV CPLUS_INCLUDE_PATH=/usr/include/gdal
+ENV C_INCLUDE_PATH=/usr/include/gdal
+
+
+# lint
+RUN pip install flake8
+# Copy the entire project into the container.
+COPY ./sunrepoapi .
+
+RUN flake8 --ignore=D401,W503,E501,F401 .
+
+# Copy the requirements file into the container.
+COPY requirements.txt .
+
+RUN pip wheel --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
+
+
+#########
+# FINAL #
+#########
+
+FROM python:3.11-slim
+
+# create directory for the app user
+RUN mkdir -p /usr/app
+
+# create the app user
+RUN groupadd -r app && useradd -r -g app app
+
+# create the appropriate directories
+ENV APP_HOME=/usr/src/app
+RUN mkdir $APP_HOME
+RUN mkdir $APP_HOME/static
+RUN mkdir $APP_HOME/static/staticfiles
+RUN mkdir $APP_HOME/static/mediafiles
+WORKDIR $APP_HOME
+
+
+# install dependencies
+RUN apt-get update \
+    && apt-get install -y tzdata libgdal-dev --no-install-recommends \
+    && apt-get install -y binutils libproj-dev gdal-bin \
+    && apt-get install -y gcc g++ python3-dev musl-dev netcat-traditional \
+    && apt-get install postgresql-contrib -y \
+    && apt-get clean -y 
+
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+COPY --from=builder /usr/src/app/wheels /wheels
+COPY --from=builder /usr/src/app/requirements.txt .
+RUN pip install /wheels/*
+
+# Install the Python dependencies.
+RUN pip install --no-cache-dir -r requirements.txt
+
+# copy entrypoint-prod.sh
+COPY ./scripts/entrypoint.sh $APP_HOME
+COPY ./scripts/entrypoint-prod.sh $APP_HOME
+
+# copy project
+COPY ./sunrepoapi $APP_HOME
+
+# chown all the files to the app user
+# RUN chown -R app:app $APP_HOME
+# RUN groupadd -r docker  && usermod -aG docker app
+# RUN usermod -aG root app
+# change to the app user
+# USER app
+
+
+
+# Expose the port on which the app will run.
+# EXPOSE 8000
+
+
+
+# Command to run the application.
+# CMD ["gunicorn", "apigateway.wsgi:application", "--bind", "0.0.0.0:8000"]
+
+
+# run entrypoint.prod.sh
+RUN chmod +x /usr/src/app/entrypoint-prod.sh
+ENTRYPOINT [ "sh", "/usr/src/app/entrypoint-prod.sh"]
