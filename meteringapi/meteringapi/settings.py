@@ -23,12 +23,8 @@ REDIS_HOST = get_env_variable("REDIS", "redis")
 REDIS_PORT = get_env_variable("REDIS_PORT", 6379)
 REDIS_URL = get_env_variable("REDIS_URL", allow_none=True)
 
-
-
-
-#INFURA CONFIGS
-INFURA_PROJECT_ID = os.getenv("INFURA_PROJECT_ID")
-INFURA_PROJECT_SECRET = os.getenv("INFURA_PROJECT_SECRET")
+BASE_URL = get_env_variable("BASE_URL", "nginx:3030/api/v1")
+print(BASE_URL)
 
 
 # Quick-start development settings - unsuitable for production
@@ -40,7 +36,7 @@ SECRET_KEY = 'django-insecure-x4))w*!mvf5e#+xwddbpmw=pl7n3sn36_v*ubmsr0546+r3eu#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['0.0.0.0', 'nginx', 'localhost', '192.168.43.229']
 
 
 # Application definition
@@ -59,6 +55,9 @@ INSTALLED_APPS = [
     "django_celery_results",
     "django_celery_beat",
     'accounts',
+    'meter',
+    'webhooks',
+    'transactions'
 ]
 
 MIDDLEWARE = [

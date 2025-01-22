@@ -65,13 +65,13 @@ class User(TimestampMixin, AbstractUser):
 
     # Roles
     ADMIN = "ADMIN"
-    STUDENT = "STUDENT"
-    LECTURER = "LECTURER"
+    CLIENT = "CLIENT"
+   
 
     USER_ROLES = [
         (ADMIN, _("admin")),
-        (STUDENT, _("student")),
-        (LECTURER, _("lecturer")),
+        (CLIENT, _("client"))
+        
     ]
 
     MALE = "MALE"
@@ -91,7 +91,7 @@ class User(TimestampMixin, AbstractUser):
     #     Country, on_delete=models.CASCADE, null=True, blank=True
     # )
     account_is_active = models.BooleanField(default=False)
-    user_role = models.CharField(default=STUDENT, choices=USER_ROLES, max_length=8)
+    user_role = models.CharField(default=CLIENT, choices=USER_ROLES, max_length=8)
     gender = models.CharField(max_length=6, choices=USER_GENDER, default=MALE)
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
@@ -153,6 +153,69 @@ class Profile(TimestampMixin, models.Model):
         return f"{self.user.email}"
 
 
+class Wallet(TimestampMixin):
+    wallet_id = models.CharField(
+        null=False, blank=False, max_length=10, unique=True
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=False)
+    currency = models.CharField(
+        default="USD", max_length=10
+    )
+    balance = models.DecimalField(
+        default=0.00, max_digits=20, decimal_places=2
+    )
+
+    def __str__(self):
+        return f"{self.wallet_id} - {self.currency}"
+
+    def add_funds(self, transaction):
+        logger.info(
+            f"Adding funds. Details: {transaction.get_logging_context()}"
+        )
+
+        blc = decimal.Decimal(self.balance)
+        self.balance = blc + decimal.Decimal(transaction.amount)
+        self.save()
+        WalletLog.objects.create(
+            wallet=self,
+            current_amount=blc,
+            incoming_amount=transaction.amount,
+        )
+
+    def deduct_funds(self, amount):
+        # log this operation
+        blc = decimal.Decimal(self.balance)
+        if blc < amount:
+            raise ValidationError("Insufficient account balance")
+
+        self.balance = blc - amount
+        self.save()
+        # TODO notify_user
+
+    def get_logging_context(self):
+        return {
+            "wallet_id": self.wallet_id,
+            "currency": self.currency,
+            "balance": self.balance,
+        }
+
+    @property
+    def total_earnings(self):
+        from meter.models import Transaction, COMMISSION
+        total = Transaction.objects.filter(wallet=self, flow_type=COMMISSION).aggregate(Sum('amount', default=0))
+        logger.info(f"[ACCOUNT_MODELS] total_earnings: {total.get('amount__sum')}")
+        return total.get('amount__sum')
 
 
+class WalletLog(TimestampMixin):
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE)
+    current_amount = models.DecimalField(
+        default=0.00, max_digits=20, decimal_places=2, null=True
+    )
+    incoming_amount = models.DecimalField(
+        default=0.00, max_digits=20, decimal_places=2, null=True, blank=True
+    )
+    outgoing_amount = models.DecimalField(
+        default=0.00, max_digits=20, decimal_places=2, null=True, blank=True
+    )
 

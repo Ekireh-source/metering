@@ -17,6 +17,7 @@ then
         chown -R $(whoami):$(whoami) /tmp
         python manage.py migrate django_celery_beat --noinput
         python manage.py migrate django_celery_results --noinput
+        python manage.py collectstatic --noinput
         python manage.py makemigrations
         python manage.py migrate
         celery -A meteringapi worker -E -l INFO  --logfile=/var/log/celery/worker.log --uid=$(whoami) --gid=$(whoami) --concurrency=1 &
