@@ -10,5 +10,17 @@ urlpatterns = [
         include(
             ("meter.api.urls", "meter"), namespace="meter"
         ),
+    ),
+    path(
+        "transactions/",
+        include(
+            ("transactions.api.urls", "transactions"), namespace="transactions"
+        ),
+    ),
+    path(
+        "webhooks/",
+        include(
+            ("webhooks.api.urls", "webhooks"), namespace="webhooks"
+        ),
     )
 ]

@@ -20,7 +20,10 @@
     "message": "From Emorut"
 }
 
-
+{
+    "amount":20000,
+    "phone_number":"256755676557"
+}
 
 
 

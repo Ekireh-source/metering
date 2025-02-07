@@ -93,6 +93,8 @@ class User(TimestampMixin, AbstractUser):
     account_is_active = models.BooleanField(default=False)
     user_role = models.CharField(default=CLIENT, choices=USER_ROLES, max_length=8)
     gender = models.CharField(max_length=6, choices=USER_GENDER, default=MALE)
+    monthly_unit_balance = models.FloatField(default=0)  # Units bought in the current month
+    last_purchase_date = models.DateField(null=True, blank=True)
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = CustomUserManager()

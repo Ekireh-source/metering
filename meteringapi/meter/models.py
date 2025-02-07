@@ -28,3 +28,11 @@ class Meter(TimestampMixin):
         return f"{self.meter_no} - IP: {self.static_ip}"
 
 
+class MeterToken(TimestampMixin):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=10, unique=True) 
+    units = models.FloatField()
+    is_used = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Token: {self.token} | Units: {self.units}"

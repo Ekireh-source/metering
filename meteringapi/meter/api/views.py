@@ -3,6 +3,7 @@ import logging
 from django.conf import settings
 from django.http import JsonResponse
 from meter.models import Meter
+from accounts.models import User
 from transactions.models import UnitTransaction
 from .serializers import SendUnitSerializer
 from ..models import generate_random_string
@@ -11,7 +12,7 @@ from rest_framework.generics import (
     GenericAPIView,
 )
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework import status, viewsets, mixins
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from utils.models import UnitReceiverResponse
@@ -158,6 +159,15 @@ class ReceiveUnitsView(APIView):
             if receiver_meter and sender_meter:
                 units_to_send = no_units # Units to add
 
+                if units_to_send == 0:
+                    message = (
+                        "Unit can not be 0"
+                    )
+                    response_data = {
+                        "message": message,
+                    }
+                    return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
                 if not units_to_send:
                     message = (
                         "Invalid units value"
@@ -214,7 +224,7 @@ class ReceiveUnitsView(APIView):
                     }
                     return Response(response_data, status=status.HTTP_200_OK)
                 else:
-                    sender_transaction.status = "Failed"
+                    sender_transaction.status = "FAILED"
                     sender_transaction.save()
                     message = (
                         "Failed to send units"
@@ -233,7 +243,13 @@ class ReceiveUnitsView(APIView):
                 }
                 return Response(response_data, status=status.HTTP_400_BAD_REQUEST)  
         except Meter.DoesNotExist:
-            pass
+            message = (
+                "Meter not found"
+            )
+            response_data = {
+                "error": message,
+            }
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
         
 
         

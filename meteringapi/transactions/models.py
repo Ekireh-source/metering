@@ -2,6 +2,7 @@ from django.db import models
 from accounts.models import TimestampMixin, User
 from meter.models import Meter
 from django.utils.translation import gettext_lazy as _
+from phonenumber_field.modelfields import PhoneNumberField
 
 # Create your models here.
 
@@ -42,3 +43,21 @@ class UnitTransaction(TimestampMixin):
 
     def __str__(self):
         return f"Transaction {self.transaction_id} from {self.sender.username}"
+    
+
+class Transaction(TimestampMixin):
+    from accounts.models import Wallet
+    transaction_id = models.CharField(max_length=16, unique=True, null=True, blank=True)
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE)
+    amount = models.DecimalField(
+        default=0.00, max_digits=20, decimal_places=2, null=True
+    )
+    status = models.CharField(
+        choices=STATUS_CHOICES, default=PENDING, max_length=20
+    )
+    phone_number = PhoneNumberField(blank=False, null=False)
+    message = models.TextField(null=True, blank=True)
+    transaction_reference = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.transaction_id} - {self.wallet}"
