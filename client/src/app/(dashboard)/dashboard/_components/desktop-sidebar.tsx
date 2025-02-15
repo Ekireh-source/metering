@@ -55,11 +55,11 @@ export default function DesktopSidebar(){
             
           </Link>
           <Link
-            href="/dashboard/withdraw"
+            href="/dashboard/tokens"
             className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary", {"bg-muted text-primary": pathname === "/dashboard/withdraw"})}
           >
             <ArrowUpRight className="h-4 w-4" />
-            Purchase Transactions
+            Tokens
           </Link>
           {/* <Link
             href="/dashboard/buy-airtime"

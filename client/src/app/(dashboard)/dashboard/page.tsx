@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table"
-import { Transaction } from "@/interface/transaction.interface"
+import { Transaction } from "@/interface/token.interface"
 import { User } from "@/interface/user.interface"
 import { getUserConfig } from "@/lib/account"
 import { get } from "@/lib/fetch"

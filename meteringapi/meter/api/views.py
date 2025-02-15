@@ -2,10 +2,10 @@ import requests
 import logging
 from django.conf import settings
 from django.http import JsonResponse
-from meter.models import Meter
+from meter.models import Meter, MeterToken
 from accounts.models import User
 from transactions.models import UnitTransaction
-from .serializers import SendUnitSerializer
+from .serializers import SendUnitSerializer, TokenSerializer
 from ..models import generate_random_string
 from rest_framework.generics import (
     CreateAPIView,
@@ -252,5 +252,31 @@ class ReceiveUnitsView(APIView):
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
         
 
+
+
+class TokenView(GenericAPIView):
+
+    permission_classes = (IsAuthenticated,)
+    serializer_class = TokenSerializer
+    def get(self, request, *args, **kwargs):
+        user = request.user
         
 
+        try:
+            token_data = MeterToken.objects.order_by('-id')[:10]
+            
+            serializer = self.serializer_class(token_data, many=True)
+            
+            response_data = {
+            "data": serializer.data
+            
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        except MeterToken.DoesNotExist:
+            message = (
+                "No transactions"
+            )
+            response_data = {
+                "error": message,
+            }
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)

@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import type { z } from "zod";
-
+import { Terminal } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Form,
   FormControl,
@@ -20,22 +21,11 @@ import { FormError } from "@/components/common/form-error";
 import { FormSuccess } from "@/components/common/form-success";
 import { Button } from "@/components/ui/button";
 import { Input as ShadIput } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { BuyUnitSchema } from "@/lib/schema";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
-import mpesa from "@/assets/images/mpesa.jpg";
-import ug from "@/assets/images/ug.png";
-import Image from "next/image";
 import { buyUnits } from "../buy-units";
-import { User } from "@/interface/user.interface";
 import {formatCurrency} from "@/lib/utils"
 // import { Badge } from "@/components/ui/badge"
 import { useAccount } from "@/hooks/use-account";
@@ -45,6 +35,7 @@ export default function WithdrawForm() {
       const searchParams = useSearchParams();
       const [error, setError] = useState<string | undefined>("");
       const [success, setSuccess] = useState("");
+      const [token, setToken] = useState("")
       const [isPending, startTransition] = useTransition();
 
       const {user, loading} = useAccount()
@@ -68,7 +59,7 @@ export default function WithdrawForm() {
         
 
             buyUnits(values).then((data) => {
-              console.log("Responded with: ", data)
+            console.log("Responded with: ", data?.data?.token);
             if (data?.error) {
               // form.reset();
               
@@ -85,10 +76,11 @@ export default function WithdrawForm() {
               }
             }
   
-            // if (data?.success) {
-            //   form.reset();
-            //   setSuccess(data.success);
-            // }
+            if (data?.data?.token) {
+              form.reset();
+              setToken(data?.data?.token);
+              // setSuccess(data?data?.message)
+            }
   
           }).catch(() => setError(""));
 
@@ -107,6 +99,16 @@ export default function WithdrawForm() {
           {/* <div className="flex justify-center items-center mb-5">
             <Badge className="text-xl font-light" variant="outline">Account balance {formatter.format(Number(user?.wallet.balance))}</Badge>
           </div> */}
+            {!!token && <div>
+                <Alert>
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Token</AlertTitle>
+                  <AlertDescription>
+                    {token}
+                  </AlertDescription>
+                </Alert>
+
+                </div>}
           
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -121,7 +123,7 @@ export default function WithdrawForm() {
                             <FormLabel>Amount (UGX)</FormLabel>
                             <FormControl>
                                 <Input disabled={isPending}
-                                  type="number"  placeholder="500" {...field} />
+                                  type="number"  placeholder="5000" {...field} />
                             </FormControl>
                             
                             <FormMessage />

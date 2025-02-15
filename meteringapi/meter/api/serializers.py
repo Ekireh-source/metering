@@ -1,6 +1,6 @@
 import logging
 from rest_framework import serializers
-from meter.models import Meter
+from meter.models import Meter, MeterToken
 
 
 
@@ -20,4 +20,7 @@ class SendUnitSerializer(serializers.ModelSerializer):
             "message"
         ]
 
-
+class TokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MeterToken
+        fields = '__all__'
